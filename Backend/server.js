@@ -3,6 +3,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+const Student = require('./models/student.model');
+const Worker = require('./models/worker.model');
+const Admin = require('./models/admin.model');
+const Room = require('./models/room.model');
+const Complaint = require('./models/complaint.model');
+const Emergency = require('./models/emergency.model');
+const Notification = require('./models/notification.model');
+const Attendance = require('./models/attendance.model');
+const ComplaintHistory = require('./models/complaintHistory.model');
+
 const app = express();
 
 // Middleware
