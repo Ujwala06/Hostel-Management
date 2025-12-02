@@ -13,6 +13,15 @@ const Notification = require('./models/notification.model');
 const Attendance = require('./models/attendance.model');
 const ComplaintHistory = require('./models/complaintHistory.model');
 
+// ... existing requires
+const authRoutes = require('./routes/auth.routes');
+const complaintRoutes = require('./routes/complaint.routes');
+const emergencyRoutes = require('./routes/emergency.routes');
+const studentRoutes = require('./routes/student.routes');
+const workerRoutes = require('./routes/worker.routes');
+const roomRoutes = require('./routes/room.routes');
+const notificationRoutes = require('./routes/notification.routes');
+
 const app = express();
 
 // Middleware
@@ -23,6 +32,15 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Hostel backend running' });
 });
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/complaints', complaintRoutes);
+app.use('/api/emergencies', emergencyRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Connect to DB
 const MONGO_URI = process.env.MONGO_URI;

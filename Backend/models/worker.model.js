@@ -8,6 +8,7 @@ const workerSchema = new mongoose.Schema(
     dutyStartTime: { type: String, required: true }, // "08:00"
     dutyEndTime: { type: String, required: true },   // "16:00"
     active: { type: Boolean, default: true },
+     passwordHash: { type: String, required: true },
   },
   { timestamps: { createdAt: true, updatedAt: true } }
 );
