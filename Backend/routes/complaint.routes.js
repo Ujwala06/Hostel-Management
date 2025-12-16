@@ -1,6 +1,6 @@
 const express = require('express');
 const Complaint = require('../models/complaint.model');
-const ComplaintHistory = require('../models/complaintHistory.model');
+const ComplaintHistory = require('../models/complainHIstory.model');
 const auth = require('../middleware/authMiddleware');
 
 const router = express.Router();

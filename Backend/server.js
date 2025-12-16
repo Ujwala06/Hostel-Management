@@ -11,7 +11,7 @@ const Complaint = require('./models/complaint.model');
 const Emergency = require('./models/emergency.model');
 const Notification = require('./models/notification.model');
 const Attendance = require('./models/attendance.model');
-const ComplaintHistory = require('./models/complaintHistory.model');
+//const ComplaintHistory = require('./models/complaintHistory.model');
 
 // ... existing requires
 const authRoutes = require('./routes/auth.routes');

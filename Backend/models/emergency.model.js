@@ -34,4 +34,4 @@ const complaintSchema = new mongoose.Schema(
   { timestamps: true } // createdAt, updatedAt
 );
 
-module.exports = mongoose.model('Complaint', complaintSchema);
+module.exports =mongoose.models.Complaint ||  mongoose.model('Complaint', complaintSchema);
