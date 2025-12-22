@@ -1,13 +1,236 @@
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext.jsx';
+import TopBar from '../components/TopBar.jsx';
+
 const StudentDashboard = () => {
+  const { auth } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [complaintForm, setComplaintForm] = useState({
+    category: 'General',
+    description: '',
+    priority: 'Medium',
+  });
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+
+  const [emergencyForm, setEmergencyForm] = useState({
+    roomNo: '',
+    description: '',
+  });
+  const [emergencySubmitting, setEmergencySubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!auth?.id) return;
+      setLoading(true);
+      setError('');
+
+      try {
+        const [profileRes, complaintsRes] = await Promise.all([
+          axios.get(`/api/students/${auth.id}`),
+          axios.get(`/api/complaints/student/${auth.id}`),
+        ]);
+
+        setProfile(profileRes.data);
+        setComplaints(complaintsRes.data);
+      } catch (err) {
+        setError('Failed to load your data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [auth?.id]);
+
+  const handleComplaintChange = (e) => {
+    const { name, value } = e.target;
+    setComplaintForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleComplaintSubmit = async (e) => {
+    e.preventDefault();
+    setComplaintSubmitting(true);
+    setError('');
+
+    try {
+      const res = await axios.post('/api/complaints', complaintForm);
+      setComplaints((prev) => [res.data, ...prev]);
+      setComplaintForm({ category: 'General', description: '', priority: 'Medium' });
+    } catch (err) {
+      setError('Failed to submit complaint.');
+    } finally {
+      setComplaintSubmitting(false);
+    }
+  };
+
+  const handleEmergencyChange = (e) => {
+    const { name, value } = e.target;
+    setEmergencyForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEmergencySubmit = async (e) => {
+    e.preventDefault();
+    setEmergencySubmitting(true);
+    setError('');
+
+    try {
+      await axios.post('/api/emergencies', emergencyForm);
+      setEmergencyForm({ roomNo: '', description: '' });
+    } catch (err) {
+      setError('Failed to raise emergency.');
+    } finally {
+      setEmergencySubmitting(false);
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Student Dashboard</h1>
-      <p>Student features coming soon...</p>
-      <div className="mt-4 p-4 bg-blue-100 rounded">
-        - View complaints<br/>
-        - Create emergencies<br/>
-        - Update profile
-      </div>
+    <div>
+      <TopBar />
+      <main className="page">
+        <h1>Student Dashboard</h1>
+        {error && <div className="alert alert--error">{error}</div>}
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <div className="grid grid--two-cols">
+            <section className="card">
+              <h2>Your Profile</h2>
+              {profile ? (
+                <ul className="list">
+                  <li>
+                    <strong>Name:</strong> {profile.name}
+                  </li>
+                  <li>
+                    <strong>Email:</strong> {profile.email}
+                  </li>
+                  <li>
+                    <strong>Phone:</strong> {profile.phone}
+                  </li>
+                  <li>
+                    <strong>Room:</strong> {profile.roomNo}
+                  </li>
+                </ul>
+              ) : (
+                <p>No profile data.</p>
+              )}
+
+              <h3>Raise Emergency</h3>
+              <form onSubmit={handleEmergencySubmit} className="form">
+                <div className="form__group">
+                  <label htmlFor="emergency-room">Room Number</label>
+                  <input
+                    id="emergency-room"
+                    name="roomNo"
+                    value={emergencyForm.roomNo}
+                    onChange={handleEmergencyChange}
+                    required
+                  />
+                </div>
+                <div className="form__group">
+                  <label htmlFor="emergency-description">Description</label>
+                  <textarea
+                    id="emergency-description"
+                    name="description"
+                    value={emergencyForm.description}
+                    onChange={handleEmergencyChange}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn--secondary btn--block"
+                  disabled={emergencySubmitting}
+                >
+                  {emergencySubmitting ? 'Sending...' : 'Raise Emergency'}
+                </button>
+              </form>
+            </section>
+
+            <section className="card">
+              <h2>Your Complaints</h2>
+
+              <form onSubmit={handleComplaintSubmit} className="form form--inline">
+                <div className="form__group">
+                  <label htmlFor="category">Category</label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={complaintForm.category}
+                    onChange={handleComplaintChange}
+                  >
+                    <option>Cleaning</option>
+                    <option>Electrical</option>
+                    <option>Water</option>
+                    <option>Laundry</option>
+                    <option>General</option>
+                  </select>
+                </div>
+
+                <div className="form__group">
+                  <label htmlFor="priority">Priority</label>
+                  <select
+                    id="priority"
+                    name="priority"
+                    value={complaintForm.priority}
+                    onChange={handleComplaintChange}
+                  >
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                  </select>
+                </div>
+
+                <div className="form__group form__group--full">
+                  <label htmlFor="description">Description</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={complaintForm.description}
+                    onChange={handleComplaintChange}
+                    rows={3}
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn--primary btn--block"
+                  disabled={complaintSubmitting}
+                >
+                  {complaintSubmitting ? 'Submitting...' : 'Submit Complaint'}
+                </button>
+              </form>
+
+              <ul className="list list--spaced">
+                {complaints.length === 0 && <li>No complaints yet.</li>}
+                {complaints.map((complaint) => (
+                  <li key={complaint._id} className="list__item">
+                    <div className="list__item-header">
+                      <span className="badge">{complaint.category}</span>
+                      <span className="badge badge--muted">{complaint.status}</span>
+                      <span className="badge badge--priority">{complaint.priority}</span>
+                    </div>
+                    <p>{complaint.description}</p>
+                    <small>
+                      Created at:{' '}
+                      {complaint.createdAt
+                        ? new Date(complaint.createdAt).toLocaleString()
+                        : 'N/A'}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
