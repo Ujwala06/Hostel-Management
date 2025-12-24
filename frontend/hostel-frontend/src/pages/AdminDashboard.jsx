@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TopBar from '../components/TopBar.jsx';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -91,6 +93,16 @@ const AdminDashboard = () => {
       <main className="page">
         <h1>Admin / Warden Dashboard</h1>
         {error && <div className="alert alert--error">{error}</div>}
+
+        <div className="actions" style={{ marginBottom: '1rem' }}>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => navigate('/admin/rooms')}
+          >
+            Manage Rooms
+          </button>
+        </div>
 
         {loading ? (
           <p>Loading...</p>

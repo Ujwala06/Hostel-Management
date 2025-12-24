@@ -66,16 +66,6 @@ const WorkerDashboard = () => {
         attendanceToday.clockOut ? new Date(attendanceToday.clockOut).toLocaleTimeString() : '—'
       }`
     : 'No attendance recorded for today yet.';
-      // eslint-disable-next-line no-alert
-      alert('Failed to update task status');
-    }
-  };
-
-  const lastAttendanceInfo = attendance
-    ? `Clock-in: ${attendance.clockIn ? new Date(attendance.clockIn).toLocaleTimeString() : '—'} | Clock-out: ${
-        attendance.clockOut ? new Date(attendance.clockOut).toLocaleTimeString() : '—'
-      }`
-    : 'No attendance recorded for today yet.';
 
   return (
     <div>
