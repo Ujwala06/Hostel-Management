@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
+import RoomManagementPage from './pages/RoomManagementPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -24,6 +25,15 @@ function App() {
         element={(
           <ProtectedRoute roles={['ADMIN', 'WARDEN']}>
             <AdminDashboard />
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/admin/rooms"
+        element={(
+          <ProtectedRoute roles={['ADMIN', 'WARDEN']}>
+            <RoomManagementPage />
           </ProtectedRoute>
         )}
       />
