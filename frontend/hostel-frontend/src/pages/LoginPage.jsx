@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 
 const LoginPage = () => {
   const [roleType, setRoleType] = useState('student');
@@ -50,8 +51,9 @@ const LoginPage = () => {
   const identifierLabel = roleType === 'worker' ? 'Phone' : 'Email';
 
   return (
-    <div className="page page--center">
-      <div className="card card--auth">
+    <div>
+      <div className="page page--center">
+        <div className="card card--auth">
         <h1>Hostel Management Login</h1>
         <p className="text-muted">Sign in as student, admin/warden, or worker.</p>
 
@@ -120,7 +122,9 @@ const LoginPage = () => {
             {submitting ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+        </div>
       </div>
+      <SiteFooter />
     </div>
   );
 };

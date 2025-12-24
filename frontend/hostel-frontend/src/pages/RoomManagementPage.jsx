@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import TopBar from '../components/TopBar.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 
 const RoomManagementPage = () => {
   const [rooms, setRooms] = useState([]);
@@ -353,6 +354,7 @@ const RoomManagementPage = () => {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 };

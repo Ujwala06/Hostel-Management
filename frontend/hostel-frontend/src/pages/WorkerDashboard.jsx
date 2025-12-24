@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import TopBar from '../components/TopBar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 
 const WorkerDashboard = () => {
   const { auth } = useAuth();
@@ -201,6 +202,7 @@ const WorkerDashboard = () => {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 };

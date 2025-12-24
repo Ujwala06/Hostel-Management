@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TopBar from '../components/TopBar.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -234,6 +235,7 @@ const AdminDashboard = () => {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 };

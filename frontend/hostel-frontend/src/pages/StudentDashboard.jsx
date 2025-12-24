@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext.jsx';
 import TopBar from '../components/TopBar.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 
 const StudentDashboard = () => {
   const { auth } = useAuth();
@@ -62,7 +63,10 @@ const StudentDashboard = () => {
       setComplaints((prev) => [res.data, ...prev]);
       setComplaintForm({ category: 'General', description: '', priority: 'Medium' });
     } catch (err) {
-      setError('Failed to submit complaint.');
+      const message = err.response?.data?.message || 'Failed to submit complaint.';
+      setError(message);
+      // eslint-disable-next-line no-console
+      console.error('Submit complaint error:', err);
     } finally {
       setComplaintSubmitting(false);
     }
@@ -82,7 +86,10 @@ const StudentDashboard = () => {
       await axios.post('/api/emergencies', emergencyForm);
       setEmergencyForm({ roomNo: '', description: '' });
     } catch (err) {
-      setError('Failed to raise emergency.');
+      const message = err.response?.data?.message || 'Failed to raise emergency.';
+      setError(message);
+      // eslint-disable-next-line no-console
+      console.error('Raise emergency error:', err);
     } finally {
       setEmergencySubmitting(false);
     }
@@ -231,6 +238,7 @@ const StudentDashboard = () => {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 };
