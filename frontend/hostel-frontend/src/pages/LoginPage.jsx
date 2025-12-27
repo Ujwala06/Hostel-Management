@@ -1,130 +1,207 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext.jsx';
-import SiteFooter from '../components/SiteFooter.jsx';
+import { useAuth } from '../context/AuthContext';
+import { useForm } from '../hooks/useForm';
+import { loginSchema, workerLoginSchema } from '../utils/validationSchemas';
+import { showError, showSuccess } from '../utils/toastUtils';
+import SiteFooter from '../components/SiteFooter';
+import toast from 'react-hot-toast';
+import './LoginPage.css';
 
 const LoginPage = () => {
   const [roleType, setRoleType] = useState('student');
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
+  // Determine schema based on role
+  const currentSchema = roleType === 'worker' ? workerLoginSchema : loginSchema;
 
+  // Initialize form
+  const {
+    formData,
+    errors,
+    touched,
+    loading,
+    handleChange,
+    handleBlur,
+    handleSubmit: onSubmit,
+    resetForm,
+  } = useForm(
+    roleType === 'worker'
+      ? { phone: '', password: '' }
+      : { email: '', password: '' },
+    currentSchema,
+    async (data) => {
+      try {
+        const toastId = toast.loading('Logging in...');
+
+        if (roleType === 'worker') {
+          await login(data.phone, data.password, 'worker');
+        } else if (roleType === 'admin') {
+          await login(data.email, data.password, 'admin');
+        } else {
+          await login(data.email, data.password, 'student');
+        }
+
+        toast.dismiss(toastId);
+        showSuccess('Login successful!');
+
+        // Redirect based on role
+        setTimeout(() => {
+          if (roleType === 'admin') {
+            navigate('/admin');
+          } else if (roleType === 'worker') {
+            navigate('/worker');
+          } else {
+            navigate('/student');
+          }
+        }, 1000);
+      } catch (error) {
+        showError(error.message || 'Login failed. Please check your credentials.');
+      }
+    }
+  );
+
+  const handleFormSubmit = async (e) => {
     try {
-      const url =
-        roleType === 'student'
-          ? '/api/auth/login/student'
-          : roleType === 'admin'
-          ? '/api/auth/login/admin'
-          : '/api/auth/login/worker';
-
-      const payload =
-        roleType === 'worker'
-          ? { phone: identifier, password }
-          : { email: identifier, password };
-
-      const res = await axios.post(url, payload);
-      const { token, role, id, name } = res.data;
-
-      login({ token, role, id, name });
-
-      if (role === 'ADMIN' || role === 'WARDEN') navigate('/admin');
-      else if (role === 'STUDENT') navigate('/student');
-      else if (role === 'WORKER') navigate('/worker');
-      else navigate('/');
+      await onSubmit(e);
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
-      setError(message);
-    } finally {
-      setSubmitting(false);
+      // Error already shown via toast
     }
   };
 
-  const identifierLabel = roleType === 'worker' ? 'Phone' : 'Email';
-  
+  const handleRoleChange = (newRole) => {
+    setRoleType(newRole);
+    resetForm();
+  };
 
   return (
-    <div>
-      <div className="page page--center">
-        <div className="card card--auth">
-        <h1>Hostel Management Login</h1>
-        <p className="text-muted">Sign in as student, admin/warden, or worker.</p>
+    <div className="page page--center">
+      <div className="card card--auth">
+        <h1>🏛️ Hostel Management Login</h1>
+        <p className="text--muted">Sign in as student, admin/warden, or worker.</p>
 
+        {/* Role Switch Buttons */}
         <div className="role-switch">
           <button
             type="button"
-            className={
-              roleType === 'student'
-                ? 'role-switch__btn role-switch__btn--active'
-                : 'role-switch__btn'
-            }
-            onClick={() => setRoleType('student')}
+            className={`role-switch__btn ${
+              roleType === 'student' ? 'role-switch__btn--active' : ''
+            }`}
+            onClick={() => handleRoleChange('student')}
+            disabled={loading}
           >
-            Student
+            👤 Student
           </button>
           <button
             type="button"
-            className={
-              roleType === 'admin'
-                ? 'role-switch__btn role-switch__btn--active'
-                : 'role-switch__btn'
-            }
-            onClick={() => setRoleType('admin')}
+            className={`role-switch__btn ${
+              roleType === 'admin' ? 'role-switch__btn--active' : ''
+            }`}
+            onClick={() => handleRoleChange('admin')}
+            disabled={loading}
           >
-            Admin / Warden
+            🔐 Admin
           </button>
           <button
             type="button"
-            className={
-              roleType === 'worker'
-                ? 'role-switch__btn role-switch__btn--active'
-                : 'role-switch__btn'
-            }
-            onClick={() => setRoleType('worker')}
+            className={`role-switch__btn ${
+              roleType === 'worker' ? 'role-switch__btn--active' : ''
+            }`}
+            onClick={() => handleRoleChange('worker')}
+            disabled={loading}
           >
-            Worker
+            🔧 Worker
           </button>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="form">
-          <div className="form__group">
-            <label htmlFor="identifier">{identifierLabel}</label>
+        {/* Login Form */}
+        <form onSubmit={handleFormSubmit} className="form">
+          {/* Email/Phone Field */}
+          <div className="form-group">
+            <label htmlFor={roleType === 'worker' ? 'phone' : 'email'}>
+              {roleType === 'worker' ? 'Phone Number' : 'Email'}
+            </label>
             <input
-              id="identifier"
               type={roleType === 'worker' ? 'tel' : 'email'}
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              id={roleType === 'worker' ? 'phone' : 'email'}
+              name={roleType === 'worker' ? 'phone' : 'email'}
+              value={
+                formData[roleType === 'worker' ? 'phone' : 'email'] || ''
+              }
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder={
+                roleType === 'worker'
+                  ? 'Enter 10-digit phone number'
+                  : 'Enter your email'
+              }
+              disabled={loading}
+              className={`form-input ${
+                touched[roleType === 'worker' ? 'phone' : 'email'] &&
+                errors[roleType === 'worker' ? 'phone' : 'email']
+                  ? 'form-input--error'
+                  : ''
+              }`}
               required
             />
+            {touched[roleType === 'worker' ? 'phone' : 'email'] &&
+              errors[roleType === 'worker' ? 'phone' : 'email'] && (
+                <span className="form-error">
+                  {errors[roleType === 'worker' ? 'phone' : 'email']}
+                </span>
+              )}
           </div>
 
-          <div className="form__group">
+          {/* Password Field */}
+          <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
-              id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="password"
+              name="password"
+              value={formData.password || ''}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter your password"
+              disabled={loading}
+              className={`form-input ${
+                touched.password && errors.password ? 'form-input--error' : ''
+              }`}
               required
             />
+            {touched.password && errors.password && (
+              <span className="form-error">{errors.password}</span>
+            )}
           </div>
 
-          <button className="btn btn--primary btn--block" type="submit" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign in'}
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`btn btn--primary btn--full ${
+              loading ? 'btn--loading' : ''
+            }`}
+          >
+            {loading ? (
+              <>
+                <span className="spinner"></span> Logging in...
+              </>
+            ) : (
+              'Login'
+            )}
           </button>
         </form>
-        </div>
+
+        {/* Register Link */}
+        <p className="text--center text--small">
+          Don't have an account?{' '}
+          <a href="/register" className="link">
+            Register here
+          </a>
+        </p>
       </div>
+
       <SiteFooter />
     </div>
   );

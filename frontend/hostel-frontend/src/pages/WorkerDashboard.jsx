@@ -41,6 +41,21 @@ const WorkerDashboard = () => {
     loadData();
   }, [auth?.id]);
 
+  const handleStatusUpdate = async (taskId, newStatus) => {
+  if (!auth?.id) return;
+  try {
+    const res = await axios.patch(`/api/workers/${auth.id}/tasks/${taskId}`, {
+      status: newStatus,
+    });
+    setTasks((prev) =>
+      prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t))
+    );
+  } catch (err) {
+    setError('Failed to update task status.');
+  }
+};
+
+
   const handleAttendance = async (type) => {
     if (!auth?.id) return;
     setAttSubmitting(true);

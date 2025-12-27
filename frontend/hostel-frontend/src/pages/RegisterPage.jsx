@@ -1,195 +1,377 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext.jsx';
-import SiteFooter from '../components/SiteFooter.jsx';
+import { useAuth } from '../context/AuthContext';
+import { useForm } from '../hooks/useForm';
+import {
+  registerStudentSchema,
+  registerWorkerSchema,
+} from '../utils/validationSchemas';
+import { showError, showSuccess } from '../utils/toastUtils';
+import toast from 'react-hot-toast';
+import SiteFooter from '../components/SiteFooter';
+import './RegisterPage.css';
 
 const RegisterPage = () => {
-  const [roleType, setRoleType] = useState('student');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [roomNo, setRoomNo] = useState('');
-  const [emergencyContact, setEmergencyContact] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [userType, setUserType] = useState('student');
+  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const currentSchema =
+    userType === 'worker' ? registerWorkerSchema : registerStudentSchema;
 
-    if (roleType !== 'student') {
-      setError('Registration for this role is handled by the hostel administration.');
-      return;
-    }
+  const initialValues =
+    userType === 'worker'
+      ? {
+          name: '',
+          email: '',
+          phone: '',
+          position: '',
+          password: '',
+        }
+      : {
+          name: '',
+          email: '',
+          phone: '',
+          rollNumber: '',
+          branch: '',
+          semester: '',
+          password: '',
+          confirmPassword: '',
+        };
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setSubmitting(true);
-
+  const {
+    formData,
+    errors,
+    touched,
+    loading,
+    handleChange,
+    handleBlur,
+    handleSubmit: onSubmit,
+    resetForm,
+  } = useForm(initialValues, currentSchema, async (data) => {
     try {
-      const payload = {
-        name,
-        email,
-        phone,
-        roomNo: roomNo ? Number(roomNo) : undefined,
-        emergencyContact,
-        password,
-      };
+      // Extra validation for confirm password
+      if (
+        userType === 'student' &&
+        data.password !== data.confirmPassword
+      ) {
+        showError('Passwords do not match');
+        return;
+      }
 
-      const res = await axios.post('/api/auth/register/student', payload);
-      const { token, role, id, name: displayName } = res.data;
+      const toastId = toast.loading('Registering...');
 
-      login({ token, role, id, name: displayName });
-      navigate('/student');
-    } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(message);
-    } finally {
-      setSubmitting(false);
+      // Remove confirmPassword before sending to API
+      const submitData = { ...data };
+      delete submitData.confirmPassword;
+
+      await register(submitData, userType);
+
+      toast.dismiss(toastId);
+      showSuccess('Registration successful! Redirecting...');
+
+      setTimeout(() => {
+        navigate(`/${userType}`);
+      }, 1500);
+    } catch (error) {
+      showError(error.message || 'Registration failed. Please try again.');
     }
+  });
+
+  const handleUserTypeChange = (newType) => {
+    setUserType(newType);
+    resetForm();
   };
 
   return (
-    <div>
-      <div className="page page--center">
-        <div className="card card--auth">
-          <h1>Register for Hostel Access</h1>
-          <p className="text-muted">Create your student account to access the hostel portal.</p>
+    <div className="page page--center">
+      <div className="card card--auth">
+        <h1>🏛️ Hostel Management Register</h1>
+        <p className="text--muted">
+          Create a new account as a student or worker
+        </p>
 
-          <div className="role-switch">
-            <button
-              type="button"
-              className={
-                roleType === 'student'
-                  ? 'role-switch__btn role-switch__btn--active'
-                  : 'role-switch__btn'
-              }
-              onClick={() => setRoleType('student')}
-            >
-              Student
-            </button>
-            <button
-              type="button"
-              className="role-switch__btn"
-              onClick={() => setRoleType('admin')}
-            >
-              Admin / Warden
-            </button>
-            <button
-              type="button"
-              className="role-switch__btn"
-              onClick={() => setRoleType('worker')}
-            >
-              Worker
-            </button>
+        {/* User Type Switch */}
+        <div className="role-switch">
+          <button
+            type="button"
+            className={`role-switch__btn ${
+              userType === 'student' ? 'role-switch__btn--active' : ''
+            }`}
+            onClick={() => handleUserTypeChange('student')}
+            disabled={loading}
+          >
+            👤 Student
+          </button>
+          <button
+            type="button"
+            className={`role-switch__btn ${
+              userType === 'worker' ? 'role-switch__btn--active' : ''
+            }`}
+            onClick={() => handleUserTypeChange('worker')}
+            disabled={loading}
+          >
+            🔧 Worker
+          </button>
+        </div>
+
+        {/* Registration Form */}
+        <form onSubmit={onSubmit} className="form">
+          {/* Name Field */}
+          <div className="form-group">
+            <label htmlFor="name">Full Name *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter your full name"
+              disabled={loading}
+              className={`form-input ${
+                touched.name && errors.name ? 'form-input--error' : ''
+              }`}
+              required
+            />
+            {touched.name && errors.name && (
+              <span className="form-error">{errors.name}</span>
+            )}
           </div>
 
-          {roleType !== 'student' && (
-            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-              Registration for Admin / Warden and Worker roles is managed by the hostel
-              administration. Please contact the warden or admin to create these accounts.
-            </p>
+          {/* Email Field */}
+          <div className="form-group">
+            <label htmlFor="email">Email *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter your email"
+              disabled={loading}
+              className={`form-input ${
+                touched.email && errors.email ? 'form-input--error' : ''
+              }`}
+              required
+            />
+            {touched.email && errors.email && (
+              <span className="form-error">{errors.email}</span>
+            )}
+          </div>
+
+          {/* Phone Field */}
+          <div className="form-group">
+            <label htmlFor="phone">Phone Number *</label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Enter 10-digit phone number"
+              disabled={loading}
+              className={`form-input ${
+                touched.phone && errors.phone ? 'form-input--error' : ''
+              }`}
+              required
+            />
+            {touched.phone && errors.phone && (
+              <span className="form-error">{errors.phone}</span>
+            )}
+          </div>
+
+          {/* Student-specific fields */}
+          {userType === 'student' && (
+            <>
+              {/* Roll Number */}
+              <div className="form-group">
+                <label htmlFor="rollNumber">Roll Number *</label>
+                <input
+                  type="text"
+                  id="rollNumber"
+                  name="rollNumber"
+                  value={formData.rollNumber}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="e.g., 21BCA001"
+                  disabled={loading}
+                  className={`form-input ${
+                    touched.rollNumber && errors.rollNumber
+                      ? 'form-input--error'
+                      : ''
+                  }`}
+                  required
+                />
+                {touched.rollNumber && errors.rollNumber && (
+                  <span className="form-error">{errors.rollNumber}</span>
+                )}
+              </div>
+
+              {/* Branch */}
+              <div className="form-group">
+                <label htmlFor="branch">Branch *</label>
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  className={`form-input ${
+                    touched.branch && errors.branch ? 'form-input--error' : ''
+                  }`}
+                  required
+                >
+                  <option value="">Select branch</option>
+                  <option value="BCA">BCA</option>
+                  <option value="B.Tech">B.Tech</option>
+                  <option value="B.Sc">B.Sc</option>
+                </select>
+                {touched.branch && errors.branch && (
+                  <span className="form-error">{errors.branch}</span>
+                )}
+              </div>
+
+              {/* Semester */}
+              <div className="form-group">
+                <label htmlFor="semester">Semester *</label>
+                <select
+                  id="semester"
+                  name="semester"
+                  value={formData.semester}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  className={`form-input ${
+                    touched.semester && errors.semester ? 'form-input--error' : ''
+                  }`}
+                  required
+                >
+                  <option value="">Select semester</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                    <option key={sem} value={sem}>
+                      Semester {sem}
+                    </option>
+                  ))}
+                </select>
+                {touched.semester && errors.semester && (
+                  <span className="form-error">{errors.semester}</span>
+                )}
+              </div>
+            </>
           )}
 
-          {error && <div className="alert alert--error">{error}</div>}
+        {/* Worker-specific fields */}
+{userType === 'worker' && (
+  <div className="form-group">
+    <label htmlFor="position">Position *</label>
+    <select
+      id="position"
+      name="position"
+      value={formData.position}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      disabled={loading}
+      className={`form-input ${
+        touched.position && errors.position ? 'form-input--error' : ''
+      }`}
+      required
+    >
+      <option value="">Select position</option>
+      <option value="Electrician">Electrician</option>
+      <option value="Plumber">Plumber</option>
+      <option value="Cleaner">Cleaner</option>
+      <option value="Maintenance">Maintenance</option>
+      <option value="Security">Security</option>
+    </select>
+    {touched.position && errors.position && (
+      <span className="form-error">{errors.position}</span>
+    )}
+  </div>
+)}
 
-          <form onSubmit={handleSubmit} className="form">
-            <div className="form__group">
-              <label htmlFor="name">Full Name</label>
-              <input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          {/* Password Field */}
+          <div className="form-group">
+            <label htmlFor="password">Password *</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Minimum 6 characters"
+              disabled={loading}
+              className={`form-input ${
+                touched.password && errors.password ? 'form-input--error' : ''
+              }`}
+              required
+            />
+            {touched.password && errors.password && (
+              <span className="form-error">{errors.password}</span>
+            )}
+          </div>
 
-            <div className="form__group">
-              <label htmlFor="email">Email</label>
+          {/* Confirm Password (Student only) */}
+          {userType === 'student' && (
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password *</label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form__group">
-              <label htmlFor="phone">Phone</label>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form__group">
-              <label htmlFor="roomNo">Room Number (optional)</label>
-              <input
-                id="roomNo"
-                type="number"
-                value={roomNo}
-                onChange={(e) => setRoomNo(e.target.value)}
-                min={1}
-              />
-            </div>
-
-            <div className="form__group">
-              <label htmlFor="emergencyContact">Emergency Contact</label>
-              <input
-                id="emergencyContact"
-                value={emergencyContact}
-                onChange={(e) => setEmergencyContact(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form__group">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form__group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
-              <input
                 id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Re-enter your password"
+                disabled={loading}
+                className={`form-input ${
+                  touched.confirmPassword && errors.confirmPassword
+                    ? 'form-input--error'
+                    : ''
+                }`}
                 required
               />
+              {touched.confirmPassword && errors.confirmPassword && (
+                <span className="form-error">{errors.confirmPassword}</span>
+              )}
             </div>
+          )}
 
-            <button
-              type="submit"
-              className="btn btn--primary btn--block"
-              disabled={submitting}
-            >
-              {submitting ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-        </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`btn btn--primary btn--full ${
+              loading ? 'btn--loading' : ''
+            }`}
+          >
+            {loading ? (
+              <>
+                <span className="spinner"></span> Registering...
+              </>
+            ) : (
+              'Register'
+            )}
+          </button>
+        </form>
+
+        {/* Login Link */}
+        <p className="text--center text--small">
+          Already have an account?{' '}
+          <a href="/login" className="link">
+            Login here
+          </a>
+        </p>
       </div>
+
       <SiteFooter />
     </div>
   );
 };
 
 export default RegisterPage;
+
