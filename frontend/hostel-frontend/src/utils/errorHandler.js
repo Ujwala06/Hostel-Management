@@ -1,39 +1,3 @@
-// import { createContext, useContext, useEffect, useState } from 'react';
-// import axios from 'axios';
-
-// const AuthContext = createContext(null);
-
-// export const AuthProvider = ({ children }) => {
-//   const [auth, setAuth] = useState(() => {
-//     const stored = localStorage.getItem('auth');
-//     return stored ? JSON.parse(stored) : { token: null, role: null, id: null };
-//   });
-
-//  // Auto-refresh token before expiry
-// useEffect(() => {
-//   if (auth.token) {
-//     const payload = JSON.parse(atob(auth.token.split('.')[1]));
-//     const expiresIn = payload.exp * 1000 - Date.now();
-//     const refreshTimer = setTimeout(() => {
-//       // Call refresh endpoint to get new token
-//       apiClient.post('/auth/refresh').catch(() => logout());
-//     }, expiresIn - 60000); // Refresh 1 min before expiry
-    
-//     return () => clearTimeout(refreshTimer);
-//   }
-// }, [auth.token]);
-
-//   const login = (data) => setAuth(data);   // { token, role, id }
-//   const logout = () => setAuth({ token: null, role: null, id: null });
-
-//   return (
-//     <AuthContext.Provider value={{ auth, login, logout }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-
-// export const useAuth = () => useContext(AuthContext);
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../services';
 
@@ -206,4 +170,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

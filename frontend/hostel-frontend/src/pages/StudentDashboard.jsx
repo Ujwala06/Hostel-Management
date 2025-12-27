@@ -48,6 +48,21 @@ const StudentDashboard = () => {
     loadData();
   }, [auth?.id]);
 
+  const handleError = (error) => {
+  if (error.response?.status === 400) {
+    setError(error.response.data.message || 'Invalid request');
+  } else if (error.response?.status === 403) {
+    setError('You do not have permission for this action');
+  } else if (error.response?.status === 404) {
+    setError('Resource not found');
+  } else if (error.response?.status === 500) {
+    setError('Server error - please try again later');
+  } else {
+    setError(error.message || 'Network error');
+  }
+};
+
+
   const handleComplaintChange = (e) => {
     const { name, value } = e.target;
     setComplaintForm((prev) => ({ ...prev, [name]: value }));

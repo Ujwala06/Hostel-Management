@@ -7,9 +7,11 @@ import StudentDashboard from './pages/StudentDashboard.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import RoomManagementPage from './pages/RoomManagementPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import {Toaster} from 'react-hot-toast';
 
 function App() {
   return (
+    <>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -53,6 +55,8 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+     <Toaster position="top-right" />
+     </>
   );
 }
 
