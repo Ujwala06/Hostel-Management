@@ -1,33 +1,57 @@
+// src/services/roomService.js - Create this file
 import apiClient from './apiClient';
+import { toast } from 'react-hot-toast';
 
 export const roomService = {
-  // Get all rooms
-  getAllRooms: (filters = {}) => {
-    const params = new URLSearchParams(filters);
-    return apiClient.get(`/rooms?${params.toString()}`);
+  getAllRooms: async () => {
+    try {
+      const response = await apiClient.get('/rooms');
+      return response.data;
+    } catch (error) {
+      toast.error('Failed to fetch rooms');
+      throw error;
+    }
   },
 
-  // Get room details
-  getRoomDetails: (roomId) =>
-    apiClient.get(`/rooms/${roomId}`),
+  createRoom: async (roomData) => {
+    try {
+      const response = await apiClient.post('/rooms', roomData);
+      toast.success('Room created successfully');
+      return response.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create room');
+      throw error;
+    }
+  },
 
-  // Get available rooms
-  getAvailableRooms: () =>
-    apiClient.get('/rooms/available'),
+  updateRoom: async (roomNo, roomData) => {
+    try {
+      const response = await apiClient.put(`/rooms/${roomNo}`, roomData);
+      toast.success('Room updated successfully');
+      return response.data;
+    } catch (error) {
+      toast.error('Failed to update room');
+      throw error;
+    }
+  },
 
-  // Create room (admin only)
-  createRoom: (roomData) =>
-    apiClient.post('/rooms', roomData),
+  deleteRoom: async (roomNo) => {
+    try {
+      await apiClient.delete(`/rooms/${roomNo}`);
+      toast.success('Room deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete room');
+      throw error;
+    }
+  },
 
-  // Update room details (admin only)
-  updateRoom: (roomId, roomData) =>
-    apiClient.patch(`/rooms/${roomId}`, roomData),
-
-  // Allocate student to room (admin only)
-  allocateStudent: (roomId, studentId) =>
-    apiClient.post(`/rooms/${roomId}/allocate`, { student: studentId }),
-
-  // Get room occupancy
-  getRoomOccupancy: (roomId) =>
-    apiClient.get(`/rooms/${roomId}/occupancy`),
+  getAvailableRooms: async () => {
+    try {
+      const response = await apiClient.get('/rooms/available');
+      return response.data;
+    } catch (error) {
+      toast.error('Failed to fetch available rooms');
+      throw error;
+    }
+  }
 };
