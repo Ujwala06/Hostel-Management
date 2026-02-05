@@ -155,6 +155,7 @@ export const AuthProvider = ({ children }) => {
 
   // Auto-logout on token expiry check
   useEffect(() => {
+    axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     if (auth.token) {
       try {
         const payload = JSON.parse(

@@ -1,295 +1,129 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { complaintService, studentService } from '../services';
-import { useApi } from '../hooks/useApi';
-import { useForm } from '../hooks/useForm';
-import { complaintSchema } from '../utils/validationSchemas';
-import { showSuccess, showError } from '../utils/toastUtils';
-import toast from 'react-hot-toast';
-import TopBar from '../components/TopBar';
-import SiteFooter from '../components/SiteFooter';
-import './StudentDashboard.css';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const StudentDashboard = () => {
-  const { auth } = useAuth();
-  const [activeTab, setActiveTab] = useState('complaints');
+  const { auth, logout } = useAuth();
+  const [profile, setProfile] = useState({});
+  const [complaints, setComplaints] = useState([]);
+  const [emergencies, setEmergencies] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [activeTab, setActiveTab] = useState('profile');
 
-  // Fetch student profile
-  const {
-    data: profile,
-    loading: profileLoading,
-    error: profileError,
-    execute: fetchProfile,
-  } = useApi(
-    () => studentService.getProfile(auth.id),
-    false
-  );
-
-  // Fetch complaints
-  const {
-    data: complaints,
-    loading: complaintsLoading,
-    error: complaintsError,
-    execute: fetchComplaints,
-  } = useApi(
-    () => complaintService.getStudentComplaints(auth.id),
-    false
-  );
-
-  // Complaint form
-  const {
-    formData: complaintForm,
-    errors: complaintErrors,
-    touched: complaintTouched,
-    loading: submittingComplaint,
-    handleChange: handleComplaintChange,
-    handleBlur: handleComplaintBlur,
-    handleSubmit: submitComplaint,
-    resetForm: resetComplaintForm,
-  } = useForm(
-    {
-      category: '',
-      description: '',
-      priority: 'Medium',
-    },
-    complaintSchema,
-    async (data) => {
-      try {
-        const toastId = toast.loading('Submitting complaint...');
-        await complaintService.createComplaint(data);
-        toast.dismiss(toastId);
-        showSuccess('Complaint submitted successfully!');
-        resetComplaintForm();
-        await fetchComplaints();
-      } catch (error) {
-        showError(error.message || 'Failed to submit complaint');
-      }
-    }
-  );
-
-  // Load data on mount
   useEffect(() => {
     fetchProfile();
     fetchComplaints();
+    fetchEmergencies();
+    fetchNotifications();
   }, []);
 
+  const fetchProfile = async () => {
+    try {
+      const res = await axios.get(`/api/students/${auth.id}`);
+      setProfile(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchComplaints = async () => {
+    try {
+      const res = await axios.get(`/api/complaints/student/${auth.id}`);
+      setComplaints(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchEmergencies = async () => {
+    try {
+      const res = await axios.get(`/api/emergencies/student/${auth.id}`);
+      setEmergencies(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get(`/api/notifications/${auth.id}?type=STUDENT`);
+      setNotifications(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const raiseComplaint = async (category, description) => {
+    try {
+      await axios.post('/api/complaints', { category, description });
+      fetchComplaints();
+    } catch (err) {
+      alert('Failed to raise complaint');
+    }
+  };
+
+  const raiseEmergency = async (description) => {
+    try {
+      await axios.post('/api/emergencies', { description });
+      fetchEmergencies();
+    } catch (err) {
+      alert('Failed to raise emergency');
+    }
+  };
+
   return (
-    <div className="page">
-      <TopBar />
-
-      <div className="dashboard dashboard--student">
-        <div className="dashboard__header">
-          <h1>Welcome back, {profile?.name || 'Student'}! 👋</h1>
-          {profileError && (
-            <div className="alert alert--error">
-              <p>{profileError.message}</p>
-              <button onClick={fetchProfile} className="btn btn--small">
-                Retry
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Profile Card */}
-        {!profileLoading && profile && (
-          <div className="card card--profile">
-            <h2>Your Profile</h2>
-            <div className="profile-grid">
-              <div className="profile-item">
-                <label>Name:</label>
-                <span>{profile.name}</span>
-              </div>
-              <div className="profile-item">
-                <label>Email:</label>
-                <span>{profile.email}</span>
-              </div>
-              <div className="profile-item">
-                <label>Roll Number:</label>
-                <span>{profile.rollNumber}</span>
-              </div>
-              <div className="profile-item">
-                <label>Room:</label>
-                <span>{profile.room?.roomNumber || 'Not assigned'}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {profileLoading && (
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Loading profile...</p>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="tabs">
-          <button
-            className={`tab-btn ${activeTab === 'complaints' ? 'tab-btn--active' : ''}`}
-            onClick={() => setActiveTab('complaints')}
-          >
-            📋 My Complaints ({complaints?.length || 0})
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'new-complaint' ? 'tab-btn--active' : ''}`}
-            onClick={() => setActiveTab('new-complaint')}
-          >
-            ➕ Submit New Complaint
-          </button>
-        </div>
-
-        {/* Complaints List Tab */}
-        {activeTab === 'complaints' && (
-          <div className="tab-content">
-            {complaintsError && (
-              <div className="alert alert--error">
-                <p>{complaintsError.message}</p>
-                <button onClick={fetchComplaints} className="btn btn--small">
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {complaintsLoading ? (
-              <div className="loading-spinner">
-                <div className="spinner"></div>
-                <p>Loading complaints...</p>
-              </div>
-            ) : complaints && complaints.length > 0 ? (
-              <div className="complaints-list">
-                {complaints.map((complaint) => (
-                  <div key={complaint.id} className="complaint-card">
-                    <div className="complaint-header">
-                      <h3>{complaint.category}</h3>
-                      <span className={`status-badge status--${complaint.status.toLowerCase()}`}>
-                        {complaint.status}
-                      </span>
-                    </div>
-                    <p className="complaint-description">{complaint.description}</p>
-                    <div className="complaint-meta">
-                      <span className={`priority-badge priority--${complaint.priority.toLowerCase()}`}>
-                        {complaint.priority} Priority
-                      </span>
-                      <span className="complaint-date">
-                        {new Date(complaint.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>No complaints yet. Everything looks good! ✅</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* New Complaint Tab */}
-        {activeTab === 'new-complaint' && (
-          <div className="tab-content">
-            <form onSubmit={submitComplaint} className="form">
-              {/* Category */}
-              <div className="form-group">
-                <label htmlFor="category">Category *</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={complaintForm.category}
-                  onChange={handleComplaintChange}
-                  onBlur={handleComplaintBlur}
-                  disabled={submittingComplaint}
-                  className={`form-input ${
-                    complaintTouched.category && complaintErrors.category
-                      ? 'form-input--error'
-                      : ''
-                  }`}
-                  required
-                >
-                  <option value="">Select category</option>
-                  <option value="Cleaning">🧹 Cleaning</option>
-                  <option value="Electrical">⚡ Electrical</option>
-                  <option value="Plumbing">🚿 Plumbing</option>
-                  <option value="WiFi">📡 WiFi</option>
-                  <option value="Furniture">🪑 Furniture</option>
-                  <option value="Other">📝 Other</option>
-                </select>
-                {complaintTouched.category && complaintErrors.category && (
-                  <span className="form-error">{complaintErrors.category}</span>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="form-group">
-                <label htmlFor="description">Description *</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={complaintForm.description}
-                  onChange={handleComplaintChange}
-                  onBlur={handleComplaintBlur}
-                  placeholder="Describe the issue in detail..."
-                  disabled={submittingComplaint}
-                  className={`form-input form-textarea ${
-                    complaintTouched.description && complaintErrors.description
-                      ? 'form-input--error'
-                      : ''
-                  }`}
-                  rows="5"
-                  required
-                />
-                <span className="char-count">
-                  {complaintForm.description.length}/500
-                </span>
-                {complaintTouched.description && complaintErrors.description && (
-                  <span className="form-error">{complaintErrors.description}</span>
-                )}
-              </div>
-
-              {/* Priority */}
-              <div className="form-group">
-                <label htmlFor="priority">Priority *</label>
-                <select
-                  id="priority"
-                  name="priority"
-                  value={complaintForm.priority}
-                  onChange={handleComplaintChange}
-                  disabled={submittingComplaint}
-                  className={`form-input ${
-                    complaintTouched.priority && complaintErrors.priority
-                      ? 'form-input--error'
-                      : ''
-                  }`}
-                  required
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submittingComplaint}
-                className={`btn btn--primary ${
-                  submittingComplaint ? 'btn--loading' : ''
-                }`}
-              >
-                {submittingComplaint ? (
-                  <>
-                    <span className="spinner"></span> Submitting...
-                  </>
-                ) : (
-                  'Submit Complaint'
-                )}
-              </button>
-            </form>
-          </div>
-        )}
+    <div style={{ padding: '20px' }}>
+      <h1>Student Dashboard</h1>
+      <button onClick={logout}>Logout</button>
+      <div style={{ marginTop: '20px' }}>
+        <button onClick={() => setActiveTab('profile')}>Profile</button>
+        <button onClick={() => setActiveTab('complaints')}>Complaints</button>
+        <button onClick={() => setActiveTab('emergencies')}>Emergencies</button>
+        <button onClick={() => setActiveTab('notifications')}>Notifications</button>
       </div>
-
-      <SiteFooter />
+      {activeTab === 'profile' && (
+        <div>
+          <h2>Profile</h2>
+          <p>Name: {profile.name}</p>
+          <p>Email: {profile.email}</p>
+          <p>Phone: {profile.phone}</p>
+          <p>Room: {profile.room_no}</p>
+          <p>Emergency Contact: {profile.emergency_contact}</p>
+        </div>
+      )}
+      {activeTab === 'complaints' && (
+        <div>
+          <h2>Complaints</h2>
+          <button onClick={() => raiseComplaint('Cleaning', 'Room needs cleaning')}>Raise Cleaning Complaint</button>
+          {/* Add more buttons or form */}
+          <ul>
+            {complaints.map(c => (
+              <li key={c.complaint_id}>{c.category}: {c.description} - {c.status}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {activeTab === 'emergencies' && (
+        <div>
+          <h2>Emergencies</h2>
+          <button onClick={() => raiseEmergency('Medical emergency')}>Raise Emergency</button>
+          <ul>
+            {emergencies.map(e => (
+              <li key={e.emergency_id}>{e.description} - {e.status}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {activeTab === 'notifications' && (
+        <div>
+          <h2>Notifications</h2>
+          <ul>
+            {notifications.map(n => (
+              <li key={n.notification_id}>{n.message} - {n.is_read ? 'Read' : 'Unread'}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
